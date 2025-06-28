@@ -1,0 +1,6 @@
+*.pyc
+*.ipynb
+./rag/cache/*
+./rag/.idea/*
+./rag/__pycache__/*
+.ipynb_checkpoints/*

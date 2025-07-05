@@ -40,17 +40,20 @@ final_prompt = ChatPromptTemplate.from_messages(
 )
 
 class State(TypedDict):
+    # langgraph state dict to store the state of the graph
     question: str
     context: List[Document]
     answer: str
     messages: Annotated[list, add_messages]
 
 def retrieve(state: State):
+    # retrieve the most relevant documents from the vector store
     retrieved_docs = retriever.invoke(state["messages"][-1].content)
     print(retrieved_docs)
     return {"context": retrieved_docs}
 
 def generate(state: State):
+    # using the retrieved documents, generate a response to the user's question
     docs_content = "\n\n".join(doc.page_content for doc in state["context"])
     messages = prompt.invoke({
         "question": state["messages"][-1].content,
@@ -63,6 +66,7 @@ def generate(state: State):
     }
 
 def doc_finalizer(state: State):
+    # using the generated response, revise it to be more concise and clear using The Elements of Style
     final_prompt_template = final_prompt.invoke({
         "answer": state["answer"]
     })

@@ -4,3 +4,7 @@
 ./rag/.idea/*
 ./rag/__pycache__/*
 .ipynb_checkpoints/*
+*.csv
+./agents/cache/*
+./agents/.idea/*
+./agents/__pycache__/*

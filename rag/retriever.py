@@ -14,6 +14,7 @@ from llms import EMBEDDINGS
 VECTOR_STORE = InMemoryVectorStore(embedding=EMBEDDINGS)
 
 def split_documents(docs: List[Document]) -> List[Document]:
+    # Split documents into chunks using RecursiveCharacterTextSplitter
     text_splitter = RecursiveCharacterTextSplitter(
         chunk_size=1500, chunk_overlap=200
     )
@@ -32,6 +33,7 @@ class DocumentRetriever(BaseRetriever):
         VECTOR_STORE.add_documents(splits)
 
     def add_uploaded_docs(self, uploaded_files):
+        # Add list of uplaoded files to the vector store
         docs = []
         temp_dir = tempfile.TemporaryDirectory()
         for file in uploaded_files:
@@ -45,6 +47,9 @@ class DocumentRetriever(BaseRetriever):
     def _get_relevant_documents(
         self, query: str, *, run_manager: CallbackManagerForRetrieverRun
     ) -> list[Document]:
+        """
+        using default similarity search, find top k most relevant documents.
+        """
         if len(self.documents) == 0:
             return []
         return VECTOR_STORE.similarity_search(query=query, k=self.k)

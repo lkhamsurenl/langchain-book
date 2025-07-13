@@ -5,42 +5,41 @@ from langgraph.prebuilt import create_react_agent
 from pydantic_core.core_schema import str_schema
 import requests 
 from typing import Dict, List, TypedDict
-import base64
 from datetime import datetime, timezone
 from dateutil import parser
-import argparse
+from utils import get_resume_data, get_url_content, create_cover_letter
 
 llm = ChatAnthropic(model="claude-3-7-sonnet-latest")
-
 companies: list[str] = [
-    "stripe",
-    "discord",
+    "adobe",
+    "affirm",
+    "airbnb",
+    "amazon",
     "anthropic",
-    "uber",
-    "yelp",
-    "datadog",
-    "gitlab",
-    "netflix",
-    "sourcegraph",
-    "square",
+    "apple",
     "block",
     "box",
-    "dropbox",
-    "apple",
-    "amazon",
-    "adobe",
-    "microsoft",
-    "ssi",
-    "openai",
-    "thinkingmachines",
+    "coinbase",
+    "datadog",
+    "discord",
     "doordash",
-    "airbnb",
+    "dropbox",
+    "gitlab",
+    "linkedin",
+    "microsoft",
+    "netflix",
+    "nvidia",
+    "openai",
+    "pinterest",
     "slack",
     "snowflake",
-    "pinterest",
-    "nvidia",
-    "linkedin",
-    "coinbase",
+    "sourcegraph",
+    "square",
+    "ssi",
+    "stripe",
+    "thinkingmachines",
+    "uber",
+    "yelp",
 ]
 
 class Job(TypedDict):
@@ -96,14 +95,6 @@ def is_match(job: Dict, role: str, location: str) -> bool:
 
     return True
 
-def parse_job_description(job_url: str) -> str:
-    try:
-        response = requests.get(job_url, timeout=10)
-        response.raise_for_status()
-        return response.text
-    except requests.exceptions.RequestException as e:
-        print(f"Error fetching job description from {job_url}: {e}")
-        return ""
 
 def get_active_jobs(company_name: str, role: str = "machine", location: str = "remote") -> List[Job]:
     url = f"https://boards-api.greenhouse.io/v1/boards/{company_name}/jobs"
@@ -119,7 +110,7 @@ def get_active_jobs(company_name: str, role: str = "machine", location: str = "r
             try:
                 if not is_match(job, role, location):
                     continue
-                description = parse_job_description(job["absolute_url"])
+                description = get_url_content(job["absolute_url"])
                 output.append(Job(
                     company=company_name,
                     title=job["title"], 
@@ -140,71 +131,24 @@ def get_active_jobs(company_name: str, role: str = "machine", location: str = "r
 
 
 
-def create_cover_letter(job: Job, resume_data: str) -> str:
-    system_prompt = f"""
-    You are an expert cover letter writer
-    You are given a job description and a resume.
-    You need to create a cover letter for the job.
-    The cover letter should be in the following format:
-    
-    <cover letter>
-    <signature>
-    <name>
-    """
 
-    messages = [
-        {
-            "role": "system",
-            "content": system_prompt
-        },
-        {
-            "role": "user",
-            "content": [
-                {
-                    "type": "text",
-                    "text": "Resume:\n",
-                },
-                {
-                    "type": "file",
-                    "source_type": "base64",
-                    "data": resume_data,
-                    "mime_type": "application/pdf",
-                },
-                {
-                    "type": "text",
-                    "text": f"Job Description:\n{job['description']}\nCover Letter:"
-                }
-            ],
-        }
-    ]
-
-    return llm.invoke(messages).content
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--resume", type=str, required=True)
-    args = parser.parse_args()
-    resume_path = args.resume
-    try:
-        with open(resume_path, "rb") as f:
-            resume_data = base64.b64encode(f.read()).decode("utf-8")
-    except FileNotFoundError:
-        print(f"Error: Resume file not found at {resume_path}")
-        return
-    except IOError as e:
-        print(f"Error reading resume file: {e}")
-        return
-
+    resume_str: str = get_resume_data()
     # 1. find all jobs in greenhouse 
     jobs: List[Job] = []
     for company in companies:
         jobs.extend(get_active_jobs(company))
-        if len(jobs) > 0:
-            break
 
+    print(f"Number of jobs found: {len(jobs)}!")
+    
     # 2. parse given job description using its link
     for job in jobs:
-        cover_letter = create_cover_letter(job, resume_data)
+        cover_letter = create_cover_letter(
+            llm=llm, 
+            job_description=job["description"], 
+            resume_str=resume_str
+        )
         print(f"Cover letter for {job['title']} at {job['company']}:\n{cover_letter}\n----------------\n")
 
 

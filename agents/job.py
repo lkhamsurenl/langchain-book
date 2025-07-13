@@ -97,29 +97,44 @@ def is_match(job: Dict, role: str, location: str) -> bool:
     return True
 
 def parse_job_description(job_url: str) -> str:
-    response = requests.get(job_url)
-    if response.status_code == 200:
+    try:
+        response = requests.get(job_url, timeout=10)
+        response.raise_for_status()
         return response.text
-    return ""
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching job description from {job_url}: {e}")
+        return ""
 
 def get_active_jobs(company_name: str, role: str = "machine", location: str = "remote") -> List[Job]:
     url = f"https://boards-api.greenhouse.io/v1/boards/{company_name}/jobs"
-    response = requests.get(url)
     output: List[Job] = []
-    if response.status_code == 200:
+    
+    try:
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
         data = response.json()
         jobs = data.get("jobs", [])
+        
         for job in jobs:
-            if not is_match(job, role, location):
+            try:
+                if not is_match(job, role, location):
+                    continue
+                description = parse_job_description(job["absolute_url"])
+                output.append(Job(
+                    company=company_name,
+                    title=job["title"], 
+                    location=job["location"]["name"], 
+                    url=job["absolute_url"], 
+                    description=description)
+                )
+            except (KeyError, TypeError) as e:
+                print(f"Error processing job data for {company_name}: {e}")
                 continue
-            description = parse_job_description(job["absolute_url"])
-            output.append(Job(
-                company=company_name,
-                title=job["title"], 
-                location=job["location"]["name"], 
-                url=job["absolute_url"], 
-                description=description)
-            )
+                
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching jobs for {company_name}: {e}")
+    except ValueError as e:
+        print(f"Error parsing JSON response for {company_name}: {e}")
 
     return output
 
@@ -170,8 +185,15 @@ def main():
     parser.add_argument("--resume", type=str, required=True)
     args = parser.parse_args()
     resume_path = args.resume
-    with open(resume_path, "rb") as f:
-        resume_data = base64.b64encode(f.read()).decode("utf-8")
+    try:
+        with open(resume_path, "rb") as f:
+            resume_data = base64.b64encode(f.read()).decode("utf-8")
+    except FileNotFoundError:
+        print(f"Error: Resume file not found at {resume_path}")
+        return
+    except IOError as e:
+        print(f"Error reading resume file: {e}")
+        return
 
     # 1. find all jobs in greenhouse 
     jobs: List[Job] = []

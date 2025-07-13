@@ -33,16 +33,29 @@ class DocumentRetriever(BaseRetriever):
         VECTOR_STORE.add_documents(splits)
 
     def add_uploaded_docs(self, uploaded_files):
-        # Add list of uplaoded files to the vector store
+        # Add list of uploaded files to the vector store
         docs = []
-        temp_dir = tempfile.TemporaryDirectory()
-        for file in uploaded_files:
-            temp_filepath = os.path.join(temp_dir.name, file.name)
-            with open(temp_filepath, "wb") as f:
-                f.write(file.getvalue())
-                docs.extend(load_document(temp_filepath))
-            self.documents.extend(docs)
-            self.store_documents(docs)
+        try:
+            with tempfile.TemporaryDirectory() as temp_dir:
+                for file in uploaded_files:
+                    try:
+                        temp_filepath = os.path.join(temp_dir, file.name)
+                        with open(temp_filepath, "wb") as f:
+                            f.write(file.getvalue())
+                        loaded_docs = load_document(temp_filepath)
+                        docs.extend(loaded_docs)
+                    except (IOError, OSError) as e:
+                        print(f"Error processing file {file.name}: {e}")
+                        continue
+                    except Exception as e:
+                        print(f"Error loading document {file.name}: {e}")
+                        continue
+                
+                if docs:
+                    self.documents.extend(docs)
+                    self.store_documents(docs)
+        except Exception as e:
+            print(f"Error creating temporary directory: {e}")
 
     def _get_relevant_documents(
         self, query: str, *, run_manager: CallbackManagerForRetrieverRun

@@ -21,14 +21,22 @@ for message in st.session_state.chat_history:
     with st.chat_message("role"):
         st.markdown(message)
 
-docs = retriever.add_uploaded_docs(st.session_state.uploaded_files)
+if st.session_state.uploaded_files:
+    try:
+        docs = retriever.add_uploaded_docs(st.session_state.uploaded_files)
+    except Exception as e:
+        st.error(f"Error processing uploaded files: {e}")
+        docs = None
 
 def process_message(message: str):
-    response = graph.invoke({
-        "messages": HumanMessage(message),
-    }, config=config)
-
-    return response["messages"][-1].content
+    try:
+        response = graph.invoke({
+            "messages": HumanMessage(message),
+        }, config=config)
+        return response["messages"][-1].content
+    except Exception as e:
+        st.error(f"Error processing message: {e}")
+        return "Sorry, I encountered an error processing your message."
 
 st.markdown("""
 # Company Document RAG Agent
@@ -66,5 +74,12 @@ with col2:
 
     if uploaded_files:
         for file in uploaded_files:
-            if file.name not in st.session_state.uploaded_files:
-                st.session_state.uploaded_files.append(file)
+            try:
+                # Validate file before adding to session state
+                if hasattr(file, 'name') and hasattr(file, 'getvalue'):
+                    if file.name not in [f.name for f in st.session_state.uploaded_files if hasattr(f, 'name')]:
+                        st.session_state.uploaded_files.append(file)
+                else:
+                    st.warning(f"Invalid file format: {file}")
+            except Exception as e:
+                st.error(f"Error validating file {getattr(file, 'name', 'unknown')}: {e}")

@@ -1,9 +1,9 @@
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
-from langchain.agents import load_tools, initialize_agent, AgentType
 from langchain_experimental.tools import PythonREPLTool
 from langgraph.prebuilt import create_react_agent
 from langgraph.prebuilt.chat_agent_executor import AgentState
+import argparse
 
 llm = ChatOpenAI(model="gpt-4o-mini")
 tools = [PythonREPLTool()]
@@ -18,21 +18,30 @@ system_prompt = (
     "You can also use it to execute code and get the results."
     "Do not assume anything."
 )
-prompt = ChatPromptTemplate.from_messages([
-    ("system", system_prompt),
-    ("user", "{question}"),
-    ("placeholder", "{messages}")
-])
 
-agent = create_react_agent(
-    model=llm,
-    tools=tools,
-    prompt=prompt,
-    state_schema=CodeAgentState,
-    debug=True,
-)
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--question", type=str, required=True)
+    args = parser.parse_args()
 
-result = agent.invoke({
-    "question": "What are the first 10 prime numbers?",
-})
-print(result)
+    prompt = ChatPromptTemplate.from_messages([
+        ("system", system_prompt),
+        ("user", "{question}"),
+        ("placeholder", "{messages}")
+    ])
+
+    agent = create_react_agent(
+        model=llm,
+        tools=tools,
+        prompt=prompt,
+        state_schema=CodeAgentState,
+        debug=True,
+    )
+
+    result = agent.invoke({
+        "question": args.question,
+    })
+    print(result['messages'][-1].content)
+
+if __name__ == "__main__":
+    main()

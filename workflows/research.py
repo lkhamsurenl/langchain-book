@@ -35,7 +35,7 @@ class ResearchState(AgentState):
     question: str
     options: list[str]
 
-research_agent =create_react_agent(
+research_agent = create_react_agent(
     model=llm,
     prompt=research_prompt,
     tools=tools,
@@ -121,21 +121,20 @@ def _should_end(state: ResearchGraphState):
         return "revise"
     return "end"
 
-
-builder = StateGraph(ResearchGraphState)
-builder.add_node("research_node", _research_node)
-builder.add_node("critique_node", _critique_node)
-builder.add_node("revise_node", _revise_node)
-
-builder.add_edge(START, "research_node")
-builder.add_edge("research_node", "critique_node")
-builder.add_conditional_edges("critique_node", _should_end, {
-    "revise": "revise_node",
-    "end": END
-})
-builder.add_edge("revise_node", "critique_node")
-
-graph = builder.compile()
+graph = (
+    StateGraph(ResearchGraphState)
+    .add_node("research_node", _research_node)
+    .add_node("critique_node", _critique_node)
+    .add_node("revise_node", _revise_node)
+    .add_edge(START, "research_node")
+    .add_edge("research_node", "critique_node")
+    .add_conditional_edges("critique_node", _should_end, {
+        "revise": "revise_node",
+        "end": END
+    })
+    .add_edge("revise_node", "critique_node")
+    .compile()
+)
 
 for _, event in graph.stream({
     "question": "The main factor preventing subsistence economies from advancing economically is the lack of",

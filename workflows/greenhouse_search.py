@@ -130,9 +130,6 @@ def get_active_jobs(company_name: str, role: str = "machine", location: str = "r
     return output
 
 
-
-
-
 def main():
     resume_str: str = get_resume_data()
     # 1. find all jobs in greenhouse 
@@ -140,17 +137,10 @@ def main():
     for company in companies:
         jobs.extend(get_active_jobs(company))
 
-    print(f"Number of jobs found: {len(jobs)}!")
-    
-    # 2. parse given job description using its link
-    for job in jobs:
-        cover_letter = create_cover_letter(
-            llm=llm, 
-            job_description=job["description"], 
-            resume_str=resume_str
-        )
-        print(f"Cover letter for {job['title']} at {job['company']}:\n{cover_letter}\n----------------\n")
+    print(f"\n\n\nNumber of jobs found: {len(jobs)}!")
 
+    for job in jobs:
+        print(f"{job['company']}: {job['url']}\n\n")
 
 if __name__ == "__main__":
     main()

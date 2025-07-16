@@ -31,6 +31,7 @@ companies: list[str] = [
     "nvidia",
     "openai",
     "pinterest",
+    "reddit",
     "slack",
     "snowflake",
     "sourcegraph",
@@ -140,7 +141,11 @@ def main():
     print(f"\n\n\nNumber of jobs found: {len(jobs)}!")
 
     for job in jobs:
-        print(f"{job['company']}: {job['url']}\n\n")
+        print(
+            f"Company: {job['company']}\n"
+            f"Title: {job['title']}\n"
+            f"URL: {job['url']}\n\n"
+        )
 
 if __name__ == "__main__":
     main()

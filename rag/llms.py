@@ -11,6 +11,7 @@ chat_model = ChatOpenAI(
 )
 
 store = LocalFileStore("./cache/")
+# This is a function to generate embeddings, given document
 underlying_embeddings = OpenAIEmbeddings(
     model="text-embedding-3-small",
 )

@@ -76,13 +76,18 @@ def doc_finalizer(state: State):
         "messages": [AIMessage(response.content)]
     }
 
-graph_builder = StateGraph(State).add_sequence(
-    [retrieve, generate, doc_finalizer]
-)
-graph_builder.add_edge(START, "retrieve")
-graph_builder.add_edge("doc_finalizer", END)
 memory = MemorySaver()
-graph = graph_builder.compile(checkpointer=memory)
+graph = (
+    StateGraph(State)
+    .add_sequence([
+        retrieve,
+        generate,
+        doc_finalizer
+    ])
+    .add_edge(START, "retrieve")
+    .add_edge(doc_finalizer, END)
+    .compile(checkpointer=memory)
+)
 config = {
     "configurable": {"thread_id": "abc123"}
 }

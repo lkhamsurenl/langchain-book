@@ -12,7 +12,7 @@ from typing import Optional, TypedDict
 llm = ChatOpenAI(
     model="gpt-4o-mini", 
     temperature=0.0,
-    max_tokens=1000
+    max_tokens=3000
 )
 class JobDescription(BaseModel):
     """
@@ -23,7 +23,7 @@ class JobDescription(BaseModel):
 jd_system_prompt = (
     "You're a helpful assistant "
     "Given full HTML string, extract relevant "
-    "job description part of it."
+    "job description part of it.\n"
     "Do not return anything else."
 )
 job_description_prompt = ChatPromptTemplate.from_messages([
@@ -34,11 +34,36 @@ job_description_chain = (job_description_prompt | llm.with_structured_output(Job
 
 
 critique_system_prompt = (
-    "You're an expert resume reviewer that is critiquing a cover letter.\n"
-    "You will be given a job description and cover letter.\n"
-    "You need to critique the the cover letter and return the critique.\n"
-    "Keep the critique to a minimum and only use it if it's absolutely necessary.\n"
-    "Return revised version of the cover letter and no critique if the cover letter quality is satisfactory."
+    "You are a senior hiring manager and cover letter expert with 20+ years of experience reviewing "
+    "thousands of cover letters across various industries.\n\n"
+    
+    "TASK: Evaluate the provided cover letter against the job description to ensure it effectively "
+    "positions the candidate for success.\n\n"
+    
+    "EVALUATION CRITERIA:\n"
+    "1. RELEVANCE: Does it address the most important job requirements?\n"
+    "2. IMPACT: Are key qualifications presented compellingly with specific examples?\n"
+    "3. AUTHENTICITY: Does it avoid generic language and show genuine interest?\n"
+    "4. PROFESSIONALISM: Is the tone, format, and language appropriate?\n"
+    "5. CLARITY: Is it concise, well-structured, and easy to read?\n"
+    "6. ACCURACY: Does it only use information from the provided resume?\n\n"
+    
+    "CRITIQUE GUIDELINES:\n"
+    "- Be specific and actionable (not vague like 'improve tone')\n"
+    "- Focus only on significant issues that impact hiring manager perception\n"
+    "- Prioritize the most critical 2-3 improvements rather than minor details\n"
+    "- Consider industry norms and company culture when available\n\n"
+    
+    "COMMON ISSUES TO WATCH FOR:\n"
+    "- Generic opening lines that could apply to any job\n"
+    "- Missing connections between candidate experience and job requirements\n"
+    "- Weak or absent call to action\n"
+    "- Repetition of resume bullet points without adding context\n"
+    "- Inappropriate tone for the industry/company culture\n"
+    "- Length issues (too brief or too verbose)\n\n"
+    
+    "Remember: Only critique when necessary. A good cover letter that effectively demonstrates "
+    "candidate fit should be approved without changes."
 )
 
 critique_prompt = ChatPromptTemplate.from_messages([

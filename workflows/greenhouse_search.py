@@ -85,11 +85,22 @@ def is_within_last_week(date_string):
         print(f"Error parsing date: {e}")
         return False
 
-def is_match(job: Dict, role: str, location: str) -> bool:
-    if role.lower() not in job["title"].lower():
+def is_match(job: Dict, roles: List[str], locations: List[str]) -> bool:
+    role_match = False 
+    for role in roles:
+        if role.lower() in job["title"].lower() and "manager" not in job["title"].lower():
+            role_match = True
+            break
+    if not role_match:
         return False
-    if location.lower() not in job["location"]["name"].lower():
+    location_match = False
+    for location in locations:
+        if location.lower() in job["location"]["name"].lower():
+            location_match = True
+            break
+    if not location_match:
         return False
+    
     # ensure the job was posted within last week
     if not is_within_last_week(job["first_published"]):
         return False
@@ -97,7 +108,7 @@ def is_match(job: Dict, role: str, location: str) -> bool:
     return True
 
 
-def get_active_jobs(company_name: str, role: str = "machine", location: str = "remote") -> List[Job]:
+def get_active_jobs(company_name: str, roles: List[str], locations: List[str]) -> List[Job]:
     url = f"https://boards-api.greenhouse.io/v1/boards/{company_name}/jobs"
     output: List[Job] = []
     
@@ -106,10 +117,10 @@ def get_active_jobs(company_name: str, role: str = "machine", location: str = "r
         response.raise_for_status()
         data = response.json()
         jobs = data.get("jobs", [])
-        
+        print(f"Found {len(jobs)} jobs for {company_name}")
         for job in jobs:
             try:
-                if not is_match(job, role, location):
+                if not is_match(job, roles, locations):
                     continue
                 description = get_url_content(job["absolute_url"])
                 output.append(Job(
@@ -135,8 +146,24 @@ def main():
     resume_str: str = get_resume_data()
     # 1. find all jobs in greenhouse 
     jobs: List[Job] = []
+    roles = [
+        "machine learning engineer",
+        "ml engineer",
+        "ai engineer",
+        "research engineer",
+        "machine learning",
+    ]
+    locations = [
+        "remote",
+        "united states",
+        "us"
+    ]
     for company in companies:
-        jobs.extend(get_active_jobs(company))
+        jobs.extend(get_active_jobs(
+            company,
+            roles,
+            locations
+        ))
 
     print(f"\n\n\nNumber of jobs found: {len(jobs)}!")
 
